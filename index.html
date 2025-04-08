@@ -1,0 +1,91 @@
+<!-- index.html -->
+<html>
+<head>
+  <title>AR Balloon Game</title>
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+</head>
+<body>
+  <a-scene>
+    <a-assets>
+      <a-asset-item id="balloon-model" src="balloon.gltf"></a-asset-item>
+      <audio id="pop-sound" src="pop.mp3"></audio>
+    </a-assets>
+
+    <a-entity id="camera" camera></a-entity>
+
+    <a-entity id="game-manager" game-manager></a-entity>
+
+    <div id="ui-container">
+      <div id="score-container">Score: <span id="score">0</span></div>
+      <div id="message-container"></div>
+    </div>
+  </a-scene>
+
+  <script>
+    AFRAME.registerComponent('game-manager', {
+      init: function () {
+        this.spawnBalloons();
+        this.spawnTimer = setInterval(this.spawnBalloons.bind(this), 2000); // Spawn balloons every 2 seconds
+      },
+
+      spawnBalloons: function () {
+        const balloon = document.createElement('a-entity');
+        balloon.setAttribute('gltf-model', '#balloon-model');
+        balloon.setAttribute('scale', '0.5 0.5 0.5');
+        balloon.setAttribute('position', `${Math.random() * 10 - 5} ${Math.random() * 5 + 5} ${Math.random() * 10 - 5}`);
+        balloon.setAttribute('rotation', `${Math.random() * 360} ${Math.random() * 360} ${Math.random() * 360}`);
+        balloon.setAttribute('animation', 'property: position; to: ${balloon.getAttribute("position")}; dur: 3000; loop: false; dir: alternate; easing: linear;');
+        balloon.setAttribute('cursor-listener', '');
+
+        balloon.addEventListener('click', () => this.collectBalloon(balloon));
+
+        this.el.sceneEl.appendChild(balloon);
+        this.balloons.push(balloon);
+      },
+
+      collectBalloon: function (balloon) {
+        const scorePoints = Math.floor(Math.random() * 10) + 1;
+        this.score += scorePoints;
+        this.balloonsCollected++;
+        this.updateScoreUI();
+        this.showMessage(`You popped a balloon! +${scorePoints} points`);
+        this.playPopSound();
+        balloon.parentNode.removeChild(balloon);
+      },
+
+      updateScoreUI: function () {
+        document.getElementById('score').textContent = this.score;
+      },
+
+      showMessage: function (text, duration = 3000) {
+        const messageContainer = document.getElementById('message-container');
+        messageContainer.textContent = text;
+        messageContainer.style.display = 'block';
+        setTimeout(() => {
+          messageContainer.style.display = 'none';
+        }, duration);
+      },
+
+      playPopSound: function () {
+        const popSound = document.getElementById('pop-sound');
+        popSound.currentTime = 0;
+        popSound.play();
+      },
+
+      score: 0,
+      balloonsCollected: 0,
+      balloons: [],
+    });
+
+    AFRAME.registerComponent('cursor-listener', {
+      init: function () {
+        this.el.addEventListener('click', (evt) => {
+          const balloon = this.el;
+          this.el.sceneEl.components['game-manager'].collectBalloon(balloon);
+        });
+      },
+    });
+  </script>
+</body>
+</html>
+
